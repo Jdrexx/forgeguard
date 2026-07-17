@@ -1,0 +1,300 @@
+# ForgeGuard — Security Gate Pipeline
+#
+# The pipeline IS the product. This workflow runs SAST, dependency scanning,
+# container build + vulnerability scan, SBOM generation, and a DAST scan
+# against an ephemeral deployment.
+#
+# ── Workflow Jobs ───────────────────────────────────────────────────────
+# 1. sast            — CodeQL analysis (JavaScript, Python)
+# 2. deps-and-lint   — pip-audit + Bandit (Python deps & SAST)
+# 3. build-scan-sbom — Docker buildx, Grype scan, Syft SBOM, cosign attest
+# 4. dast            — ZAP baseline scan against ephemeral deployment
+# 5. policy-gate     — ForgeGuard policy evaluation (blocks on budget breach)
+#
+name: ForgeGuard Security Gate
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+# ── Least-privilege permissions ────────────────────────────────────────
+# Read-only by default; write only where explicitly needed.
+permissions:
+  contents: read
+  security-events: write    # needed for SARIF upload
+  id-token: write           # needed for cosign identity token
+  packages: read            # read ghcr.io packages
+
+jobs:
+
+  # ── 1. SAST — CodeQL ─────────────────────────────────────────────────
+  sast:
+    name: SAST — CodeQL
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript, python]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@b56ba49b26e50535fa1e7f7db0f4f7b4bf65d80d5  # v3.28.10
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@b56ba49b26e50535fa1e7f7db0f4f7b4bf65d80d5
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@b56ba49b26e50535fa1e7f7db0f4f7b4bf65d80d5
+        with:
+          output: sarif-results
+          category: "${{ matrix.language }}"
+
+      - name: Upload CodeQL SARIF
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
+        with:
+          name: codeql-sarif-${{ matrix.language }}
+          path: sarif-results/
+          retention-days: 7
+
+  # ── 2. Dependencies & Linting ────────────────────────────────────────
+  deps-and-lint:
+    name: Deps & Lint — pip-audit + Bandit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b  # v5.3.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit pip-audit
+
+      - name: Run Bandit SAST
+        run: |
+          bandit -r security/ app/ -f json -o bandit-output.json || true
+        continue-on-error: true
+
+      - name: Run pip-audit
+        run: |
+          pip-audit --format json -o pip-audit-output.json || true
+        continue-on-error: true
+
+      - name: Upload scanner results
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        with:
+          name: scanner-results
+          path: |
+            bandit-output.json
+            pip-audit-output.json
+          retention-days: 7
+
+  # ── 3. Build, Scan, SBOM ─────────────────────────────────────────────
+  build-scan-sbom:
+    name: Build → Scan → SBOM → Attest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write        # push image to ghcr.io
+      id-token: write        # cosign keyless signing
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349  # v3.7.1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567  # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804  # v5.7.0
+        with:
+          images: ghcr.io/${{ github.repository }}
+
+      - name: Build and push (multi-stage, --load)
+        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355  # v6.10.0
+        with:
+          context: .
+          load: true
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+
+      - name: Scan image with Grype
+        uses: anchore/scan-action@24fd7c9060f3c96848dd1929fac8d69ea09e5a20  # v5.4.0
+        id: grype-scan
+        with:
+          image: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          severity-cutoff: high
+          output-format: json
+          fail-build: false   # policy gate handles the decision
+
+      - name: Upload Grype results
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        with:
+          name: grype-results
+          path: ${{ steps.grype-scan.outputs.json }}
+          retention-days: 7
+
+      - name: Generate SBOM (SPDX + CycloneDX)
+        uses: anchore/sbom-action@f5a39a8fb9fb24e5c0e4ff0c5d3853e4b21ee162  # v0.17.9
+        with:
+          image: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          format: spdx-json
+          output-file: sbom-spdx.json
+
+      - name: Generate CycloneDX SBOM
+        uses: anchore/sbom-action@f5a39a8fb9fb24e5c0e4ff0c5d3853e4b21ee162
+        with:
+          image: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          format: cyclonedx-json
+          output-file: sbom-cyclonedx.json
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da  # v3.7.1
+
+      - name: Sign container image (keyless)
+        run: |
+          cosign sign --yes ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
+
+      - name: Attach SBOM as attestation
+        run: |
+          cosign attest --yes --predicate sbom-spdx.json --type spdx \
+            ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
+
+      - name: Upload SBOMs
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        with:
+          name: sboms
+          path: |
+            sbom-spdx.json
+            sbom-cyclonedx.json
+          retention-days: 30
+
+  # ── 4. DAST — ZAP Baseline Scan ──────────────────────────────────────
+  dast:
+    name: DAST — OWASP ZAP
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Start ephemeral deployment
+        run: |
+          docker compose -f docker-compose.yml up -d app
+          # Wait for the app to be ready
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8000/readyz && break
+            sleep 2
+          done
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@a7800ef6e39a07c586ed1d4153df4283f1e2a3c5  # v0.14.0
+        with:
+          target: http://localhost:8000
+          rules_file_name: .zap/rules.tsv
+          cmd_options: "-a -j"
+          issue_title: "ZAP Baseline Scan"
+
+      - name: Upload ZAP report
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        with:
+          name: zap-report
+          path: zap-report.json
+          retention-days: 7
+
+      - name: Tear down ephemeral deployment
+        if: always()
+        run: docker compose -f docker-compose.yml down
+
+  # ── 5. Policy Gate — the differentiator ──────────────────────────────
+  policy-gate:
+    name: Policy Gate — ForgeGuard
+    runs-on: ubuntu-latest
+    needs: [sast, deps-and-lint, build-scan-sbom, dast]
+    if: always()
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Set up Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b
+        with:
+          python-version: "3.12"
+
+      - name: Install ForgeGuard
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Download all scanner results
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392b47570bd0e2d0cd  # v4.1.9
+        with:
+          pattern: "*-results"
+          merge-multiple: true
+          path: scan-results/
+
+      - name: Download SBOMs for enrichment
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392b47570bd0e2d0cd
+        with:
+          name: sboms
+          path: scan-results/sboms/
+
+      - name: Run ForgeGuard policy gate
+        id: policy
+        run: |
+          python -m security.policy scan-results/ \
+            --policy policy/security-policy.yaml \
+            --allowlist policy/accepted-risks.yaml \
+            --sarif-output policy-results.sarif
+        continue-on-error: true
+
+      - name: Upload policy SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@b56ba49b26e50535fa1e7f7db0f4f7b4bf65d80d5
+        with:
+          sarif_file: policy-results.sarif
+          category: forgeguard-policy
+
+      - name: Fail pipeline if policy gate rejected
+        if: steps.policy.outcome == 'failure'
+        run: |
+          echo "::error::ForgeGuard policy gate REJECTED — severity budget breached."
+          exit 1

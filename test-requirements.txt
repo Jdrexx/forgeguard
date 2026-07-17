@@ -1,0 +1,5 @@
+# test-requirements.txt
+# Additional dependencies for testing
+pytest>=8.0,<9.0
+pytest-cov>=4.0,<5.0
+httpx>=0.27,<1.0

@@ -1,0 +1,9 @@
+# ZAP rules configuration for ForgeGuard DAST scanning.
+# Format: rule_id,threshold,new_alert
+# Lines starting with # are comments.
+# Rules with IGNORE threshold are skipped.
+
+# ── Example rules ──────────────────────────────────────────────────────
+# 10010    IGNORE    # Cookie No HttpOnly Flag (low risk for demo)
+# 10020    WARN      # X-Frame-Options Header Scanner
+# 10021    WARN      # X-Content-Type-Options Header Missing

@@ -1,0 +1,26 @@
+# Bandit configuration — ForgeGuard
+#
+# Run: bandit -r . -c policy/bandit.yaml -f json -o bandit-output.json
+
+# Directories to exclude from scanning
+exclude_dirs:
+  - .git
+  - __pycache__
+  - .venv
+  - venv
+  - node_modules
+  - tests
+  - .github
+
+# Tests to skip globally
+skips: []
+
+# Confidence and severity thresholds
+confidence: HIGH
+severity: MEDIUM
+
+# Plugin-specific configuration
+plugins:
+  # B113: request without timeout — we set timeouts at the app level
+  B113:
+    enabled: false

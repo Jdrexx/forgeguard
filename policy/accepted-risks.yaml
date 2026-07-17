@@ -1,0 +1,53 @@
+# ForgeGuard — Accepted Risks (Expiring Suppressions)
+#
+# Findings listed here are suppressed from the policy gate up to the
+# expiry date. After the expiry date, the suppression is ignored and
+# the finding counts toward the severity budget.
+#
+# This file is consumed by the ForgeGuard policy engine. Each entry
+# must have at minimum a rule_id or file pattern. The `expires` field
+# uses ISO 8601 format (YYYY-MM-DD).
+#
+# Past-date entries (expired) are included here to demonstrate that
+# the policy engine correctly ignores them.
+
+suppressions:
+  # ── Active suppressions ─────────────────────────────────────────────
+  - rule_id: "B201"
+    reason: "SQL injection false positive in test fixture — sqli.py is deliberately vulnerable for demo"
+    source: bandit
+    expires: "2027-12-31"
+
+  - rule_id: "B403"
+    file: "app/vulnerable/pickle_rce.py"
+    reason: "Known test fixture, not deployed to production"
+    source: bandit
+    expires: "2027-12-31"
+
+  - rule_id: "CWE-22"
+    file: "app/vulnerable/traversal.py"
+    reason: "Deliberately vulnerable test fixture — quarantined under DEMO_MODE"
+    source: bandit
+    expires: "2027-12-31"
+
+  # ── Expired suppressions (past date — should NOT suppress anymore) ───
+  - rule_id: "B301"
+    reason: "Was considered low-risk in the old codebase (EXPIRED)"
+    source: bandit
+    expires: "2024-06-01"
+
+  - rule_id: "CWE-89"
+    file: "app/old/sqli_deprecated.py"
+    reason: "Old SQLI endpoint was removed in v0.2 (EXPIRED)"
+    source: bandit
+    expires: "2024-01-15"
+
+  - rule_id: "CWE-200"
+    reason: "Info leak endpoint was going to be deleted (EXPIRED — never deleted)"
+    source: bandit
+    expires: "2025-01-01"
+
+  - rule_id: "GHSA-*"
+    reason: "Old umbrella suppression for all GitHub advisories (EXPIRED)"
+    source: pip-audit
+    expires: "2023-12-31"

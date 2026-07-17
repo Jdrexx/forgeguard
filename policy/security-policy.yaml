@@ -1,0 +1,29 @@
+# ForgeGuard — Default Security Policy
+#
+# Defines severity budgets that the ForgeGuard policy gate enforces.
+# The pipeline blocks the release when any budget is exceeded.
+#
+# Budget values:
+#   critical: 0  — zero tolerance for critical findings
+#   high: 0      — zero tolerance for high severity
+#   medium: 5    — up to 5 medium findings permitted
+#   low: 20      — up to 20 low findings permitted
+#   note: -1     — unlimited (informational only)
+
+budgets:
+  critical: 0
+  high: 0
+  medium: 5
+  low: 20
+  note: -1
+
+# Fail-closed: if a scanner produces no output (missing, corrupted, or malformed),
+# the pipeline fails rather than silently passing.
+fail_on_missing_tool: true
+
+# If true, findings must be proven reachable to count toward budgets.
+# When false (default), all findings count regardless of reachability.
+require_reachable_proven: false
+
+# Output a SARIF log for GitHub Security tab integration
+sarif_output: true

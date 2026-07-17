@@ -1,0 +1,66 @@
+# ForgeGuard — Local Demo Environment
+#
+# Spins up the app, a ZAP container for DAST, and Redis for session storage.
+# Usage:
+#   docker compose up -d
+#   docker compose exec app python -c "import app.main; print('ok')"
+#
+version: "3.9"
+
+services:
+  # ── Application ──────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DEMO_MODE=${DEMO_MODE:-0}
+      - REDIS_URL=redis://redis:6379/0
+      - LOG_LEVEL=info
+    depends_on:
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/livez')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - forgeguard-net
+
+  # ── Redis ────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine@sha256:deeab176e08498e63b7a1c4c24da52b5e32df7de8b8936774f65fa975467da39
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis-data:/data
+    networks:
+      - forgeguard-net
+
+  # ── OWASP ZAP (DAST) ────────────────────────────────────────────────
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable@sha256:d1a4ca965a4743d6e38b136b71edd9f3b88a0157c7a141a46f2e0fe8a3bda587
+    command: >
+      zap.sh -daemon -port 8080 -host 0.0.0.0
+      -config api.disablekey=true
+      -config api.addrs.addr.name=.*
+      -config api.addrs.addr.regex=true
+    ports:
+      - "8080:8080"
+    networks:
+      - forgeguard-net
+
+volumes:
+  redis-data:
+
+networks:
+  forgeguard-net:
+    driver: bridge
