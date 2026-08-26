@@ -33,3 +33,6 @@ Thumbs.db
 # ForgeGuard specific
 scan-fixtures/  # Generated scanner fixtures
 policy-results.sarif  # Generated SARIF output
+.procoder/state/
+.procoder/index/
+.lycheecache
