@@ -5,23 +5,23 @@ Uses path containment check to ensure the resolved path stays within BASE_DIR.
 """
 from __future__ import annotations
 
-import os
+import tempfile
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter()
-BASE_DIR = os.path.abspath("/tmp/forgeguard-files")
-os.makedirs(BASE_DIR, exist_ok=True)
+_data_directory = tempfile.TemporaryDirectory(prefix="forgeguard-files-")
+BASE_DIR = Path(_data_directory.name).resolve()
 
 
 @router.get("/read")
 def read_file(filename: str = Query(..., description="File to read (safe)")):
     """Read a file from the data directory. SAFE: path containment check."""
-    # Compute absolute path and verify it's within BASE_DIR
-    requested = os.path.abspath(os.path.join(BASE_DIR, filename))
-    if not requested.startswith(BASE_DIR):
+    requested = (BASE_DIR / filename).resolve()
+    if not requested.is_relative_to(BASE_DIR):
         raise HTTPException(status_code=403, detail="Path traversal detected")
-    if not os.path.exists(requested):
+    if not requested.is_file():
         raise HTTPException(status_code=404, detail="File not found")
-    with open(requested) as f:
+    with requested.open(encoding="utf-8") as f:
         return {"content": f.read()}
