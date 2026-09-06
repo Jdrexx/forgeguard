@@ -4,6 +4,7 @@ ForgeGuard — adapter tests.
 Each scanner adapter is tested against known fixture data to ensure parsing
 produces expected Finding objects with correct fields.
 """
+
 from __future__ import annotations
 
 import json
@@ -30,6 +31,7 @@ def _write_fixture(dir_path: Path, filename: str, data) -> Path:
 
 
 # ── Bandit ─────────────────────────────────────────────────────────────
+
 
 def test_bandit_adapter_parses_basic(tmp_path):
     adapter = BanditAdapter()
@@ -69,6 +71,7 @@ def test_bandit_adapter_no_output(tmp_path):
 def test_bandit_severity_mapping():
     """Verify severity mappings are correct."""
     from security.adapters import _map_bandit_severity
+
     assert _map_bandit_severity("HIGH") == "high"
     assert _map_bandit_severity("MEDIUM") == "medium"
     assert _map_bandit_severity("LOW") == "low"
@@ -76,6 +79,7 @@ def test_bandit_severity_mapping():
 
 
 # ── pip-audit ──────────────────────────────────────────────────────────
+
 
 def test_pip_audit_adapter(tmp_path):
     adapter = PipAuditAdapter()
@@ -108,24 +112,31 @@ def test_pip_audit_adapter(tmp_path):
 
 # ── CodeQL ─────────────────────────────────────────────────────────────
 
+
 def test_codeql_adapter(tmp_path):
     adapter = CodeQLAdapter()
     data = {
-        "runs": [{
-            "tool": {"driver": {"name": "CodeQL"}},
-            "results": [{
-                "ruleId": "py/sql-injection",
-                "level": "error",
-                "message": {"text": "SQL injection"},
-                "locations": [{
-                    "physicalLocation": {
-                        "artifactLocation": {"uri": "app/sqli.py"},
-                        "region": {"startLine": 22, "startColumn": 4},
+        "runs": [
+            {
+                "tool": {"driver": {"name": "CodeQL"}},
+                "results": [
+                    {
+                        "ruleId": "py/sql-injection",
+                        "level": "error",
+                        "message": {"text": "SQL injection"},
+                        "locations": [
+                            {
+                                "physicalLocation": {
+                                    "artifactLocation": {"uri": "app/sqli.py"},
+                                    "region": {"startLine": 22, "startColumn": 4},
+                                }
+                            }
+                        ],
+                        "properties": {"tags": ["CWE-89", "security"]},
                     }
-                }],
-                "properties": {"tags": ["CWE-89", "security"]},
-            }],
-        }]
+                ],
+            }
+        ]
     }
     _write_fixture(tmp_path, "codeql.sarif", data)
     result = adapter.parse(str(tmp_path))
@@ -138,6 +149,7 @@ def test_codeql_adapter(tmp_path):
 
 
 # ── Grype ──────────────────────────────────────────────────────────────
+
 
 def test_grype_adapter(tmp_path):
     adapter = GrypeAdapter()
@@ -166,19 +178,26 @@ def test_grype_adapter(tmp_path):
 
 # ── ZAP ────────────────────────────────────────────────────────────────
 
+
 def test_zap_adapter(tmp_path):
     adapter = ZAPAdapter()
     data = {
-        "site": [{
-            "alerts": [{
-                "id": "10010",
-                "name": "Cookie No HttpOnly Flag",
-                "riskdesc": "Medium (Medium)",
-                "risk": "Medium",
-                "cweid": 1004,
-                "instances": [{"uri": "http://localhost:8000/", "method": "GET"}],
-            }],
-        }]
+        "site": [
+            {
+                "alerts": [
+                    {
+                        "id": "10010",
+                        "name": "Cookie No HttpOnly Flag",
+                        "riskdesc": "Medium (Medium)",
+                        "risk": "Medium",
+                        "cweid": 1004,
+                        "instances": [
+                            {"uri": "http://localhost:8000/", "method": "GET"}
+                        ],
+                    }
+                ],
+            }
+        ]
     }
     _write_fixture(tmp_path, "zap.json", data)
     result = adapter.parse(str(tmp_path))
@@ -190,6 +209,7 @@ def test_zap_adapter(tmp_path):
 
 
 # ── Gitleaks ───────────────────────────────────────────────────────────
+
 
 def test_gitleaks_adapter(tmp_path):
     adapter = GitleaksAdapter()
@@ -215,6 +235,7 @@ def test_gitleaks_adapter(tmp_path):
 
 
 # ── All adapters ───────────────────────────────────────────────────────
+
 
 def test_all_adapters_have_unique_names():
     """Each adapter should have a unique name."""

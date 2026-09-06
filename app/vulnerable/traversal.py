@@ -3,6 +3,7 @@ VULNERABLE — CWE-22: Path Traversal.
 
 User-controlled file path without containment check.
 """
+
 from __future__ import annotations
 
 import os
@@ -14,7 +15,9 @@ BASE_DIR = "/tmp/forgeguard-files"
 
 
 @router.get("/read")
-def read_file(filename: str = Query(..., description="File to read (path traversal vector)")):
+def read_file(
+    filename: str = Query(..., description="File to read (path traversal vector)"),
+):
     """Read a file from the data directory. VULNERABLE: no path containment check."""
     # BAD: user-controlled path without validation — CWE-22
     filepath = os.path.join(BASE_DIR, filename)

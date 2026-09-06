@@ -14,11 +14,13 @@ Usage:
     docker build -t forgeguard .
     python -m pytest tests/test_container.py -v
 """
+
 from __future__ import annotations
 
 import shutil
 import subprocess
 import sys
+import time
 
 import pytest
 
@@ -29,7 +31,9 @@ def docker_available() -> bool:
         return False
     result = subprocess.run(
         ["docker", "info"],
-        capture_output=True, text=True, timeout=10,
+        capture_output=True,
+        text=True,
+        timeout=10,
     )
     return result.returncode == 0
 
@@ -64,7 +68,8 @@ def test_no_shell():
     require_docker()
     result = subprocess.run(
         ["docker", "run", "--rm", "forgeguard", "sh", "-c", "echo hello"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode == 0:
         print("    ⚠ Shell is available (distroless check failed)")
@@ -76,15 +81,36 @@ def test_health_check():
     require_docker()
     # Start container in background
     subprocess.run(
-        ["docker", "run", "-d", "--name", "forgeguard-test", "-p", "18000:8000", "forgeguard"],
+        [
+            "docker",
+            "run",
+            "-d",
+            "--name",
+            "forgeguard-test",
+            "-p",
+            "18000:8000",
+            "forgeguard",
+        ],
         capture_output=True,
     )
     try:
-        result = subprocess.run(
-            ["curl", "-sf", "http://localhost:18000/livez"],
-            capture_output=True, text=True, timeout=10,
-        )
-        assert "alive" in result.stdout.lower(), f"Health check failed: {result.stdout}"
+        # The app needs a moment to boot (uvicorn import + startup); curl
+        # immediately hits a not-yet-listening/connection-reset port. Poll up
+        # to ~20s for readiness before asserting (same pattern as the ZAP job
+        # in .github/workflows/security-gate.yml).
+        last = ""
+        for _ in range(20):
+            result = subprocess.run(
+                ["curl", "-sf", "http://localhost:18000/livez"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.stdout and "alive" in result.stdout.lower():
+                break
+            last = result.stdout
+            time.sleep(1)
+        assert "alive" in result.stdout.lower(), f"Health check failed: {last}"
     finally:
         subprocess.run(["docker", "rm", "-f", "forgeguard-test"], capture_output=True)
 
@@ -93,7 +119,15 @@ def test_health_check():
 def test_container_env_vars():
     """Verify environment variable defaults."""
     require_docker()
-    output = run(["docker", "run", "--rm", "forgeguard", "python", "-c",
-                  "import os; print(os.environ.get('DEMO_MODE', 'MISSING'))"])
+    output = run(
+        [
+            "docker",
+            "run",
+            "--rm",
+            "forgeguard",
+            "python",
+            "-c",
+            "import os; print(os.environ.get('DEMO_MODE', 'MISSING'))",
+        ]
+    )
     assert output == "0", f"DEMO_MODE should be 0, got {output}"
-

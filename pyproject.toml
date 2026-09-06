@@ -4,6 +4,9 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+# Tests import the root packages (security, app, forgeguard) directly; the
+# repo is not pip-installed, so pytest must add the project root to sys.path.
+pythonpath = ["."]
 
 # Show 2 slowest tests, print summary
 addopts = [

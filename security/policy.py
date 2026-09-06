@@ -12,6 +12,7 @@ Usage:
         --allowlist policy/accepted-risks.yaml \
         --sarif-output results.sarif
 """
+
 from __future__ import annotations
 
 import argparse
@@ -34,7 +35,7 @@ DEFAULT_BUDGETS: dict[str, int] = {
     "high": 0,
     "medium": 5,
     "low": 20,
-    "note": -1,       # -1 means unlimited
+    "note": -1,  # -1 means unlimited
 }
 
 
@@ -62,7 +63,10 @@ class PolicyConfig:
 
 # ── pipeline stages ────────────────────────────────────────────────────
 
-def load_results(results_dir: str | Path, adapters: list | None = None) -> list[Finding]:
+
+def load_results(
+    results_dir: str | Path, adapters: list | None = None
+) -> list[Finding]:
     """
     Load scanner output files from a directory.
     Uses the adapter pattern: each adapter knows how to parse its tool's output.
@@ -128,7 +132,9 @@ def enrich(findings: list[Finding]) -> list[Finding]:
     return findings
 
 
-def waive(findings: list[Finding], suppressions: list[Suppression]) -> tuple[list[Finding], list[Finding]]:
+def waive(
+    findings: list[Finding], suppressions: list[Suppression]
+) -> tuple[list[Finding], list[Finding]]:
     """
     Apply suppressions. Returns (active_findings, waived_findings).
     Expired suppressions are silently ignored.
@@ -223,21 +229,29 @@ def _write_sarif(decision: PolicyDecision, path: str):
     sarif = {
         "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
         "version": "2.1.0",
-        "runs": [{
-            "tool": {"driver": {"name": "ForgeGuard", "informationUri": "https://github.com/jdrexx/forgeguard"}},
-            "results": [f.to_sarif() for f in decision.blocking_findings],
-            "properties": {
-                "allowed": decision.allowed,
-                "reasons": decision.reasons,
-                "scores": decision.scores,
-            },
-        }],
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": "ForgeGuard",
+                        "informationUri": "https://github.com/jdrexx/forgeguard",
+                    }
+                },
+                "results": [f.to_sarif() for f in decision.blocking_findings],
+                "properties": {
+                    "allowed": decision.allowed,
+                    "reasons": decision.reasons,
+                    "scores": decision.scores,
+                },
+            }
+        ],
     }
     Path(path).write_text(json.dumps(sarif, indent=2))
     print(f"  → SARIF output written to {path}", file=sys.stderr)
 
 
 # ── main entry point ───────────────────────────────────────────────────
+
 
 def run_policy(
     results_dir: str | Path,
@@ -288,7 +302,10 @@ def _load_suppressions(path: str | Path) -> list[Suppression]:
     """Load suppressions from YAML allowlist, dropping expired ones."""
     path = Path(path)
     if not path.exists():
-        print(f"  (no allowlist at {path}, continuing without suppressions)", file=sys.stderr)
+        print(
+            f"  (no allowlist at {path}, continuing without suppressions)",
+            file=sys.stderr,
+        )
         return []
 
     raw = yaml.safe_load(path.read_text()) or {}
@@ -310,7 +327,10 @@ def _load_suppressions(path: str | Path) -> list[Suppression]:
                 print(f"  ⚠ invalid expiry date: {entry['expires']}", file=sys.stderr)
         if sup.is_expired:
             dropped += 1
-            print(f"  ✗ skipping expired suppression: rule={sup.rule_id} (expired {sup.expires})", file=sys.stderr)
+            print(
+                f"  ✗ skipping expired suppression: rule={sup.rule_id} (expired {sup.expires})",
+                file=sys.stderr,
+            )
         else:
             suppressions.append(sup)
 
@@ -326,19 +346,23 @@ def cli():
     )
     parser.add_argument("results_dir", help="Directory containing scanner output files")
     parser.add_argument(
-        "--policy", default="policy/security-policy.yaml",
+        "--policy",
+        default="policy/security-policy.yaml",
         help="Path to security policy YAML",
     )
     parser.add_argument(
-        "--allowlist", default="policy/accepted-risks.yaml",
+        "--allowlist",
+        default="policy/accepted-risks.yaml",
         help="Path to accepted risks / suppressions YAML",
     )
     parser.add_argument(
-        "--sarif-output", default=None,
+        "--sarif-output",
+        default=None,
         help="Path for SARIF output (default: policy-results.sarif)",
     )
     parser.add_argument(
-        "--no-sarif", action="store_true",
+        "--no-sarif",
+        action="store_true",
         help="Disable SARIF output",
     )
     args = parser.parse_args()

@@ -3,6 +3,7 @@ FIXED — CWE-502: Unsafe Deserialization (remediated).
 
 Uses JSON instead of pickle. No arbitrary code execution vector.
 """
+
 from __future__ import annotations
 
 import json

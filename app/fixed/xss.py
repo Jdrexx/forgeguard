@@ -3,6 +3,7 @@ FIXED — CWE-79: Cross-Site Scripting (remediated).
 
 Uses output encoding via Jinja2 autoescaping or manual HTML escaping.
 """
+
 from __future__ import annotations
 
 from html import escape

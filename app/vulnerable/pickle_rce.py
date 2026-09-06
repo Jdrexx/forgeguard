@@ -3,6 +3,7 @@ VULNERABLE — CWE-502: Unsafe Deserialization.
 
 Uses pickle.loads() on user-supplied data. Remote code execution vector.
 """
+
 from __future__ import annotations
 
 import pickle

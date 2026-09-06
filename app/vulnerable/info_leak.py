@@ -3,6 +3,7 @@ VULNERABLE — CWE-200: Information Exposure.
 
 Debug endpoint that exposes configuration and environment variables.
 """
+
 from __future__ import annotations
 
 import os
@@ -19,7 +20,9 @@ def debug_config():
     return {
         "environment": dict(os.environ),
         "config": {
-            "database_url": os.environ.get("DATABASE_URL", "postgres://user:pass@localhost/db"),
+            "database_url": os.environ.get(
+                "DATABASE_URL", "postgres://user:pass@localhost/db"
+            ),
             "secret_key": os.environ.get("SECRET_KEY", "dev-secret-key-12345"),
             "api_keys": os.environ.get("API_KEYS", "sk-1234,sk-5678"),
         },

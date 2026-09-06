@@ -5,6 +5,7 @@ This app exists as a test fixture for the ForgeGuard pipeline.
 In production (DEMO_MODE=0), only the fixed endpoints are available.
 Set DEMO_MODE=1 to expose the deliberately vulnerable endpoints.
 """
+
 from __future__ import annotations
 
 import os
@@ -21,6 +22,7 @@ DEMO_MODE = os.environ.get("DEMO_MODE", "0") == "1"
 
 
 # ── health checks (always available) ───────────────────────────────────
+
 
 @app.get("/livez")
 async def livez():

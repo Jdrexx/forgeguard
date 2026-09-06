@@ -6,7 +6,7 @@
 # All base images pinned to digest for immutability and supply-chain security.
 
 # ── Stage 1: Build ─────────────────────────────────────────────────────
-FROM python:3.12-slim-bookworm@sha256:7485bb55a88630ead6ffdbeed0ce77dce81a21e13a298448c5cd0dc3cace5816 AS builder
+FROM python:3.12-slim-bookworm@sha256:782412e85d0f0984994c290652577d4018aff08145c85b262bb63dc0c7522254 AS builder
 
 WORKDIR /build
 
@@ -26,7 +26,7 @@ COPY app/ app/
 COPY policy/ policy/
 
 # ── Stage 2: Runtime ───────────────────────────────────────────────────
-FROM python:3.12-slim-bookworm@sha256:7485bb55a88630ead6ffdbeed0ce77dce81a21e13a298448c5cd0dc3cace5816 AS runtime
+FROM python:3.12-slim-bookworm@sha256:782412e85d0f0984994c290652577d4018aff08145c85b262bb63dc0c7522254 AS runtime
 
 # Create non-root user
 RUN groupadd --gid 10001 forgeguard && \
@@ -43,7 +43,7 @@ COPY --from=builder /build/policy /app/policy
 WORKDIR /app
 
 ENV PATH="/home/forgeguard/.local/bin:${PATH}" \
-    PYTHONPATH="/app:${PYTHONPATH}" \
+    PYTHONPATH="/app" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DEMO_MODE=0

@@ -5,6 +5,7 @@ Tests ensure the demo app starts, serves health checks, and that the
 vulnerable endpoints are properly quarantined behind DEMO_MODE.
 Uses TestClient for actual HTTP-level verification.
 """
+
 from __future__ import annotations
 
 import os
@@ -17,6 +18,7 @@ from fastapi.testclient import TestClient
 
 # ── Production Mode (DEMO_MODE=0) ──────────────────────────────────────
 
+
 def _make_app(demo_mode: str):
     """Create a fresh app instance with the given DEMO_MODE."""
     os.environ["DEMO_MODE"] = demo_mode
@@ -24,6 +26,7 @@ def _make_app(demo_mode: str):
         if "app" in mod:
             del sys.modules[mod]
     import app.main
+
     reload(app.main)
     return app.main.app
 

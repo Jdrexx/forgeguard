@@ -3,6 +3,7 @@ FIXED — CWE-200: Information Exposure (remediated).
 
 Debug endpoints fully stripped. No configuration leakage.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter

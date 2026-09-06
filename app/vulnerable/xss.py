@@ -3,6 +3,7 @@ VULNERABLE — CWE-79: Cross-Site Scripting.
 
 Returns unencoded user input directly in the response body.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Query

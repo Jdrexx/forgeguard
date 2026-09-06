@@ -3,6 +3,7 @@ VULNERABLE — CWE-352: Cross-Site Request Forgery.
 
 No CSRF protection on state-changing endpoints.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Form

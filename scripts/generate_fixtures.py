@@ -5,6 +5,7 @@ ForgeGuard — create scanner fixture output for testing.
 Generates mock JSON output for each supported scanner so the policy
 engine can be exercised without running the actual scanners.
 """
+
 from __future__ import annotations
 
 import json
@@ -52,7 +53,12 @@ def bandit_fixture() -> dict:
         "errors": [],
         "generated_at": "2026-01-01T00:00:00Z",
         "metrics": {
-            "_totals": {"CONFIDENCE.HIGH": 2, "CONFIDENCE.MEDIUM": 1, "SEVERITY.HIGH": 1, "SEVERITY.MEDIUM": 2}
+            "_totals": {
+                "CONFIDENCE.HIGH": 2,
+                "CONFIDENCE.MEDIUM": 1,
+                "SEVERITY.HIGH": 1,
+                "SEVERITY.MEDIUM": 2,
+            }
         },
     }
 
@@ -99,13 +105,19 @@ def codeql_fixture() -> dict:
                     {
                         "ruleId": "py/sql-injection",
                         "level": "error",
-                        "message": {"text": "SQL query built from user-controlled sources"},
-                        "locations": [{
-                            "physicalLocation": {
-                                "artifactLocation": {"uri": "app/vulnerable/sqli.py"},
-                                "region": {"startLine": 22, "startColumn": 4},
+                        "message": {
+                            "text": "SQL query built from user-controlled sources"
+                        },
+                        "locations": [
+                            {
+                                "physicalLocation": {
+                                    "artifactLocation": {
+                                        "uri": "app/vulnerable/sqli.py"
+                                    },
+                                    "region": {"startLine": 22, "startColumn": 4},
+                                }
                             }
-                        }],
+                        ],
                         "properties": {
                             "tags": ["CWE-89", "security"],
                             "severity": "error",
@@ -149,7 +161,9 @@ def zap_fixture() -> dict:
                         "riskdesc": "Medium (Medium)",
                         "risk": "Medium",
                         "cweid": 1004,
-                        "instances": [{"uri": "http://localhost:8000/api/user", "method": "GET"}],
+                        "instances": [
+                            {"uri": "http://localhost:8000/api/user", "method": "GET"}
+                        ],
                     }
                 ]
             }

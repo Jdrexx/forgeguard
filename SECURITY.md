@@ -5,7 +5,7 @@
 ForgeGuard is early-stage. Only the latest release receives security updates.
 
 | Version | Supported |
-|---------|-----------|
+| ------- | --------- |
 | 0.x     | ✅        |
 
 ## Reporting a Vulnerability

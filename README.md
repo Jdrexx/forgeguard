@@ -1,4 +1,3 @@
-
                                     ╔═══════════════════════════╗
                                     ║      F O R G E G U A R D  ║
                                     ║   DevSecOps Policy Engine  ║
@@ -98,13 +97,13 @@ test fixture to demonstrate that the pipeline catches what it claims to catch.
 
 The pipeline runs as five sequential jobs in GitHub Actions:
 
-| Job | Tools | Output |
-|-----|-------|--------|
-| **sast** | CodeQL (JavaScript, Python) | SARIF results |
-| **deps-and-lint** | pip-audit, Bandit | JSON findings |
+| Job                 | Tools                              | Output                          |
+| ------------------- | ---------------------------------- | ------------------------------- |
+| **sast**            | CodeQL (JavaScript, Python)        | SARIF results                   |
+| **deps-and-lint**   | pip-audit, Bandit                  | JSON findings                   |
 | **build-scan-sbom** | Docker Buildx, Grype, Syft, cosign | Image, Scan, SBOMs, Attestation |
-| **dast** | OWASP ZAP baseline | ZAP JSON report |
-| **policy-gate** | ForgeGuard Policy Engine | Pass/Fail + SARIF for GitHub |
+| **dast**            | OWASP ZAP baseline                 | ZAP JSON report                 |
+| **policy-gate**     | ForgeGuard Policy Engine           | Pass/Fail + SARIF for GitHub    |
 
 ---
 
@@ -134,11 +133,11 @@ Most security tools let you suppress findings forever. That's how
 suppressions:
   - rule_id: "B201"
     reason: "Known test fixture"
-    expires: "2027-12-31"   # This one is active
+    expires: "2027-12-31" # This one is active
 
   - rule_id: "CWE-200"
     reason: "Was going to fix (EXPIRED)"
-    expires: "2024-01-15"   # This one is ignored — past date
+    expires: "2024-01-15" # This one is ignored — past date
 ```
 
 Expired suppressions **stop suppressing**. The finding counts against the
@@ -178,14 +177,14 @@ same dashboard.
 Each vulnerable endpoint in this repo maps to a CWE, a fix, and a tool that
 detects it. This table proves the pipeline catches what it claims to catch.
 
-| CWE | Vulnerability | Vulnerable File | Fixed File | What the Fix Does | Tool That Catches It |
-|-----|---------------|----------------|------------|-------------------|---------------------|
-| **CWE-89** | SQL Injection | [`app/vulnerable/sqli.py`](app/vulnerable/sqli.py) | [`app/fixed/sqli.py`](app/fixed/sqli.py) | Parameterized queries instead of string interpolation | Bandit (B201), CodeQL (py/sql-injection) |
-| **CWE-79** | Cross-Site Scripting | [`app/vulnerable/xss.py`](app/vulnerable/xss.py) | [`app/fixed/xss.py`](app/fixed/xss.py) | HTML-escaped output via `html.escape()` | Bandit (B303), CodeQL (py/xss) |
-| **CWE-22** | Path Traversal | [`app/vulnerable/traversal.py`](app/vulnerable/traversal.py) | [`app/fixed/traversal.py`](app/fixed/traversal.py) | Path containment check (`requested.startswith(BASE_DIR)`) | Bandit (B301), CodeQL (py/path-injection) |
-| **CWE-200** | Information Exposure | [`app/vulnerable/info_leak.py`](app/vulnerable/info_leak.py) | [`app/fixed/info_leak.py`](app/fixed/info_leak.py) | Debug endpoints removed entirely | Bandit (B108), CodeQL (py/clear-text-storage-sensitive-data) |
-| **CWE-352** | CSRF | [`app/vulnerable/csrf.py`](app/vulnerable/csrf.py) | [`app/fixed/csrf.py`](app/fixed/csrf.py) | CSRF token validation via dependency injection | ZAP (10010, 10020) |
-| **CWE-502** | Unsafe Deserialization | [`app/vulnerable/pickle_rce.py`](app/vulnerable/pickle_rce.py) | [`app/fixed/pickle_rce.py`](app/fixed/pickle_rce.py) | Replaced `pickle.loads()` with `json.loads()` | Bandit (B403), CodeQL (py/unsafe-deserialization) |
+| CWE         | Vulnerability          | Vulnerable File                                                | Fixed File                                           | What the Fix Does                                         | Tool That Catches It                                         |
+| ----------- | ---------------------- | -------------------------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------ |
+| **CWE-89**  | SQL Injection          | [`app/vulnerable/sqli.py`](app/vulnerable/sqli.py)             | [`app/fixed/sqli.py`](app/fixed/sqli.py)             | Parameterized queries instead of string interpolation     | Bandit (B201), CodeQL (py/sql-injection)                     |
+| **CWE-79**  | Cross-Site Scripting   | [`app/vulnerable/xss.py`](app/vulnerable/xss.py)               | [`app/fixed/xss.py`](app/fixed/xss.py)               | HTML-escaped output via `html.escape()`                   | Bandit (B303), CodeQL (py/xss)                               |
+| **CWE-22**  | Path Traversal         | [`app/vulnerable/traversal.py`](app/vulnerable/traversal.py)   | [`app/fixed/traversal.py`](app/fixed/traversal.py)   | Path containment check (`requested.startswith(BASE_DIR)`) | Bandit (B301), CodeQL (py/path-injection)                    |
+| **CWE-200** | Information Exposure   | [`app/vulnerable/info_leak.py`](app/vulnerable/info_leak.py)   | [`app/fixed/info_leak.py`](app/fixed/info_leak.py)   | Debug endpoints removed entirely                          | Bandit (B108), CodeQL (py/clear-text-storage-sensitive-data) |
+| **CWE-352** | CSRF                   | [`app/vulnerable/csrf.py`](app/vulnerable/csrf.py)             | [`app/fixed/csrf.py`](app/fixed/csrf.py)             | CSRF token validation via dependency injection            | ZAP (10010, 10020)                                           |
+| **CWE-502** | Unsafe Deserialization | [`app/vulnerable/pickle_rce.py`](app/vulnerable/pickle_rce.py) | [`app/fixed/pickle_rce.py`](app/fixed/pickle_rce.py) | Replaced `pickle.loads()` with `json.loads()`             | Bandit (B403), CodeQL (py/unsafe-deserialization)            |
 
 ---
 
@@ -250,9 +249,9 @@ python -m pytest tests/ -v --cov=security
 3. The `security-gate.yml` workflow runs automatically on push/PR to main
 4. Configure these repository secrets:
 
-| Secret | Purpose |
-|--------|---------|
-| `GITHUB_TOKEN` | Auto-provided — no setup needed |
+| Secret          | Purpose                             |
+| --------------- | ----------------------------------- |
+| `GITHUB_TOKEN`  | Auto-provided — no setup needed     |
 | (none required) | Everything else uses OIDC / keyless |
 
 ### GitHub Security Tab
@@ -289,18 +288,18 @@ cosign verify \
 
 ## Architecture Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Policy engine language | Python | Most security engineers are Python-literate; rich ecosystem for JSON/SARIF/YAML parsing |
-| Adapter pattern | Separate adapter classes | Adding a new scanner = one new file, no changes to core logic |
-| Expiring suppressions | ISO 8601 dates in YAML | Human-readable, git-trackable, CI-enforceable |
-| Fail-closed | Missing scanner output blocks release | Better to fail a build than ship a vulnerability |
-| SARIF upload | via codeql-action | Reuses existing GitHub Security Tab infrastructure |
-| SBOM format | SPDX + CycloneDX | Both are industry standards; SPDX for cosign attestation, CycloneDX for dependency tools |
-| Buildx --load | Multi-stage with --load | Ensures the image is available for Grype scanning in the same job |
-| Distroless runtime | python:3.12-slim-bookworm | Minimal attack surface; no shell, no package manager in runtime |
-| cosign keyless | GitHub OIDC | No key management, no rotating secrets, no key ceremony |
-| Workflow pinning | Commit SHAs | Supply-chain security; prevents action tag mutations |
+| Decision               | Choice                                | Rationale                                                                                |
+| ---------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Policy engine language | Python                                | Most security engineers are Python-literate; rich ecosystem for JSON/SARIF/YAML parsing  |
+| Adapter pattern        | Separate adapter classes              | Adding a new scanner = one new file, no changes to core logic                            |
+| Expiring suppressions  | ISO 8601 dates in YAML                | Human-readable, git-trackable, CI-enforceable                                            |
+| Fail-closed            | Missing scanner output blocks release | Better to fail a build than ship a vulnerability                                         |
+| SARIF upload           | via codeql-action                     | Reuses existing GitHub Security Tab infrastructure                                       |
+| SBOM format            | SPDX + CycloneDX                      | Both are industry standards; SPDX for cosign attestation, CycloneDX for dependency tools |
+| Buildx --load          | Multi-stage with --load               | Ensures the image is available for Grype scanning in the same job                        |
+| Distroless runtime     | python:3.12-slim-bookworm             | Minimal attack surface; no shell, no package manager in runtime                          |
+| cosign keyless         | GitHub OIDC                           | No key management, no rotating secrets, no key ceremony                                  |
+| Workflow pinning       | Commit SHAs                           | Supply-chain security; prevents action tag mutations                                     |
 
 ---
 
@@ -373,7 +372,7 @@ MIT — see [LICENSE](LICENSE) (not included — add your own).
 
 ---
 
-*ForgeGuard was built as a portfolio differentiator. The pipeline is the product.
+_ForgeGuard was built as a portfolio differentiator. The pipeline is the product.
 The app is just a test fixture. Every bootcamp grad has a Trivy workflow.
 Not every bootcamp grad has a custom policy engine with expiring suppressions
-and SARIF output.*
+and SARIF output._

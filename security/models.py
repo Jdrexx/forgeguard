@@ -3,6 +3,7 @@ ForgeGuard — core domain models.
 
 Finding and PolicyDecision dataclasses used throughout the pipeline.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -38,7 +39,7 @@ class Finding:
     """A normalized security finding from any scanner."""
 
     fingerprint: str = ""
-    source: str = ""           # which scanner: bandit, pip-audit, codeql, grype, zap, gitleaks
+    source: str = ""  # which scanner: bandit, pip-audit, codeql, grype, zap, gitleaks
     rule_id: str = ""
     severity: Severity = Severity.NOTE
     cwes: list[str] = field(default_factory=list)
@@ -46,7 +47,7 @@ class Finding:
     line: int = 0
     column: int = 0
     fix_available: bool = False
-    reachable: bool = True    # True unless proved otherwise
+    reachable: bool = True  # True unless proved otherwise
     description: str = ""
     raw: dict[str, Any] = field(default_factory=dict)
 
@@ -65,14 +66,21 @@ class Finding:
         return {
             "ruleId": self.rule_id,
             "ruleIndex": 0,
-            "level": "error" if self.severity in (Severity.CRITICAL, Severity.HIGH) else "warning",
+            "level": "error"
+            if self.severity in (Severity.CRITICAL, Severity.HIGH)
+            else "warning",
             "message": {"text": self.description or f"{self.source}: {self.rule_id}"},
-            "locations": [{
-                "physicalLocation": {
-                    "artifactLocation": {"uri": self.file},
-                    "region": {"startLine": self.line, "startColumn": max(self.column, 1)},
+            "locations": [
+                {
+                    "physicalLocation": {
+                        "artifactLocation": {"uri": self.file},
+                        "region": {
+                            "startLine": self.line,
+                            "startColumn": max(self.column, 1),
+                        },
+                    }
                 }
-            }],
+            ],
             "properties": {
                 "severity": self.severity.value,
                 "source": self.source,
@@ -92,7 +100,7 @@ class Suppression:
     file: str = ""
     reason: str = ""
     expires: datetime | None = None
-    source: str = ""           # which scanner this applies to (empty = all)
+    source: str = ""  # which scanner this applies to (empty = all)
 
     @property
     def is_expired(self) -> bool:

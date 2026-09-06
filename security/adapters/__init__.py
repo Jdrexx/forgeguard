@@ -4,6 +4,7 @@ ForgeGuard — Scanner Adapters.
 Each adapter knows how to parse its scanner's output format into Finding objects.
 Add a new scanner by subclassing BaseAdapter and registering it in ALL_ADAPTERS.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -33,9 +34,7 @@ class BaseAdapter:
         directory = Path(directory)
         output_path = self.find_output(directory)
         if output_path is None:
-            return ParseResult(
-                error=f"No {self.name} output found in {directory}"
-            )
+            return ParseResult(error=f"No {self.name} output found in {directory}")
         try:
             raw = output_path.read_text()
             return self._parse_content(raw, output_path)
@@ -50,6 +49,7 @@ import json
 import yaml
 
 # ── Bandit Adapter ──────────────────────────────────────────────────────
+
 
 class BanditAdapter(BaseAdapter):
     name = "bandit"
@@ -87,22 +87,34 @@ def _map_bandit_severity(s: str) -> str:
 
 def _bandit_cwe(test_id: str) -> list[str]:
     mapping = {
-        "B001": ["CWE-200"], "B105": ["CWE-522"], "B106": ["CWE-200"],
-        "B107": ["CWE-200"], "B108": ["CWE-200"], "B110": ["CWE-200"],
-        "B201": ["CWE-89"],  "B202": ["CWE-89"],
-        "B301": ["CWE-22"],  "B302": ["CWE-22"],
+        "B001": ["CWE-200"],
+        "B105": ["CWE-522"],
+        "B106": ["CWE-200"],
+        "B107": ["CWE-200"],
+        "B108": ["CWE-200"],
+        "B110": ["CWE-200"],
+        "B201": ["CWE-89"],
+        "B202": ["CWE-89"],
+        "B301": ["CWE-22"],
+        "B302": ["CWE-22"],
         "B303": ["CWE-79"],
-        "B401": ["CWE-94"],  "B402": ["CWE-94"],
+        "B401": ["CWE-94"],
+        "B402": ["CWE-94"],
         "B403": ["CWE-502"],
-        "B501": ["CWE-330"], "B502": ["CWE-330"],
-        "B601": ["CWE-78"],  "B602": ["CWE-78"], "B603": ["CWE-78"],
-        "B605": ["CWE-78"],  "B607": ["CWE-78"],
+        "B501": ["CWE-330"],
+        "B502": ["CWE-330"],
+        "B601": ["CWE-78"],
+        "B602": ["CWE-78"],
+        "B603": ["CWE-78"],
+        "B605": ["CWE-78"],
+        "B607": ["CWE-78"],
         "B701": ["CWE-326"],
     }
     return mapping.get(test_id, [])
 
 
 # ── pip-audit Adapter ──────────────────────────────────────────────────
+
 
 class PipAuditAdapter(BaseAdapter):
     name = "pip-audit"
@@ -123,7 +135,11 @@ class PipAuditAdapter(BaseAdapter):
                     source="pip-audit",
                     rule_id=vuln.get("id", "UNKNOWN"),
                     severity=_map_pip_severity(vuln.get("severity", "medium")),
-                    cwes=[cwe["id"] for cwe in vuln.get("aliases", []) if cwe.get("id", "").startswith("CWE-")],
+                    cwes=[
+                        cwe["id"]
+                        for cwe in vuln.get("aliases", [])
+                        if cwe.get("id", "").startswith("CWE-")
+                    ],
                     file=dep.get("name", ""),
                     line=0,
                     description=f"{vuln.get('id', '')}: {vuln.get('description', '')}",
@@ -136,14 +152,23 @@ class PipAuditAdapter(BaseAdapter):
 
 def _map_pip_severity(s: str | float | int) -> str:
     if isinstance(s, (int, float)):
-        if s >= 9.0: return "critical"
-        if s >= 7.0: return "high"
-        if s >= 4.0: return "medium"
+        if s >= 9.0:
+            return "critical"
+        if s >= 7.0:
+            return "high"
+        if s >= 4.0:
+            return "medium"
         return "low"
-    return {"CRITICAL": "critical", "HIGH": "high", "MEDIUM": "medium", "LOW": "low"}.get(s.upper(), "medium")
+    return {
+        "CRITICAL": "critical",
+        "HIGH": "high",
+        "MEDIUM": "medium",
+        "LOW": "low",
+    }.get(s.upper(), "medium")
 
 
 # ── CodeQL Adapter ─────────────────────────────────────────────────────
+
 
 class CodeQLAdapter(BaseAdapter):
     name = "codeql"
@@ -192,6 +217,7 @@ def _extract_codeql_cwes(result: dict) -> list[str]:
 
 # ── Grype Adapter ──────────────────────────────────────────────────────
 
+
 class GrypeAdapter(BaseAdapter):
     name = "grype"
 
@@ -231,11 +257,18 @@ class GrypeAdapter(BaseAdapter):
 
 
 def _map_grype_severity(s: str) -> str:
-    m = {"Critical": "critical", "High": "high", "Medium": "medium", "Low": "low", "Negligible": "note"}
+    m = {
+        "Critical": "critical",
+        "High": "high",
+        "Medium": "medium",
+        "Low": "low",
+        "Negligible": "note",
+    }
     return m.get(s, s.lower())
 
 
 # ── ZAP Adapter ────────────────────────────────────────────────────────
+
 
 class ZAPAdapter(BaseAdapter):
     name = "zap"
@@ -278,8 +311,16 @@ class ZAPAdapter(BaseAdapter):
 
 
 def _map_zap_risk(risk: str | int) -> str:
-    m = {3: "high", 2: "medium", 1: "low", 0: "note",
-         "High": "high", "Medium": "medium", "Low": "low", "Info": "note"}
+    m = {
+        3: "high",
+        2: "medium",
+        1: "low",
+        0: "note",
+        "High": "high",
+        "Medium": "medium",
+        "Low": "low",
+        "Info": "note",
+    }
     return m.get(risk, "medium")
 
 
@@ -290,6 +331,7 @@ def _zap_cwe(cweid: int) -> list[str]:
 
 
 # ── Gitleaks Adapter ───────────────────────────────────────────────────
+
 
 class GitleaksAdapter(BaseAdapter):
     name = "gitleaks"

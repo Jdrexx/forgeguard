@@ -3,6 +3,7 @@ FIXED — CWE-352: Cross-Site Request Forgery (remediated).
 
 CSRF middleware enabled. State-changing endpoints require token validation.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Form, HTTPException

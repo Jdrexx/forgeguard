@@ -8,6 +8,7 @@ Tests cover the full evaluation pipeline:
 - Severity budgets
 - SARIF output format
 """
+
 from __future__ import annotations
 
 import json
@@ -34,6 +35,7 @@ from security.policy import (
 
 
 # ── Fixtures ───────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def findings_list() -> list[Finding]:
@@ -130,21 +132,27 @@ def scan_results_dir(tmp_path: Path) -> Path:
 
     # codeql.sarif
     codeql_data = {
-        "runs": [{
-            "tool": {"driver": {"name": "CodeQL"}},
-            "results": [{
-                "ruleId": "py/sql-injection",
-                "level": "warning",
-                "message": {"text": "SQL injection"},
-                "locations": [{
-                    "physicalLocation": {
-                        "artifactLocation": {"uri": "app/sqli.py"},
-                        "region": {"startLine": 22, "startColumn": 4},
+        "runs": [
+            {
+                "tool": {"driver": {"name": "CodeQL"}},
+                "results": [
+                    {
+                        "ruleId": "py/sql-injection",
+                        "level": "warning",
+                        "message": {"text": "SQL injection"},
+                        "locations": [
+                            {
+                                "physicalLocation": {
+                                    "artifactLocation": {"uri": "app/sqli.py"},
+                                    "region": {"startLine": 22, "startColumn": 4},
+                                }
+                            }
+                        ],
+                        "properties": {"tags": ["CWE-89"]},
                     }
-                }],
-                "properties": {"tags": ["CWE-89"]},
-            }],
-        }]
+                ],
+            }
+        ]
     }
     (results / "codeql.sarif").write_text(json.dumps(codeql_data))
 
@@ -166,16 +174,22 @@ def scan_results_dir(tmp_path: Path) -> Path:
 
     # zap.json
     zap_data = {
-        "site": [{
-            "alerts": [{
-                "id": "10010",
-                "name": "Cookie No HttpOnly Flag",
-                "riskdesc": "Low (Low)",
-                "risk": "Low",
-                "cweid": 1004,
-                "instances": [{"uri": "http://localhost:8000/", "method": "GET"}],
-            }],
-        }]
+        "site": [
+            {
+                "alerts": [
+                    {
+                        "id": "10010",
+                        "name": "Cookie No HttpOnly Flag",
+                        "riskdesc": "Low (Low)",
+                        "risk": "Low",
+                        "cweid": 1004,
+                        "instances": [
+                            {"uri": "http://localhost:8000/", "method": "GET"}
+                        ],
+                    }
+                ],
+            }
+        ]
     }
     (results / "zap.json").write_text(json.dumps(zap_data))
 
@@ -197,6 +211,7 @@ def scan_results_dir(tmp_path: Path) -> Path:
 
 # ── Normalize ──────────────────────────────────────────────────────────
 
+
 def test_normalize_strips_whitespace():
     findings = [
         Finding(severity=" high ", file="  app/x.py  "),
@@ -209,6 +224,7 @@ def test_normalize_strips_whitespace():
 
 
 # ── Deduplicate ────────────────────────────────────────────────────────
+
 
 def test_deduplicate_by_fingerprint(findings_list):
     # Add a duplicate with lower severity
@@ -256,6 +272,7 @@ def test_deduplicate_prefers_reachable():
 
 # ── Enrich ─────────────────────────────────────────────────────────────
 
+
 def test_enrich_marks_sqli_as_fixable():
     findings = [
         Finding(severity=Severity.MEDIUM, cwes=["CWE-89"], fix_available=False),
@@ -269,6 +286,7 @@ def test_enrich_marks_sqli_as_fixable():
 
 
 # ── Waive / Suppressions ──────────────────────────────────────────────
+
 
 def test_active_suppression_suppresses():
     findings = [
@@ -328,20 +346,24 @@ def test_suppression_matches_correct_source():
 def test_load_suppressions_drops_expired(tmp_path):
     """Test that loading suppressions from YAML drops expired entries."""
     allowlist = tmp_path / "accepted-risks.yaml"
-    allowlist.write_text(yaml.dump({
-        "suppressions": [
+    allowlist.write_text(
+        yaml.dump(
             {
-                "rule_id": "B201",
-                "reason": "Active",
-                "expires": (datetime.now() + timedelta(days=30)).isoformat(),
-            },
-            {
-                "rule_id": "B301",
-                "reason": "Expired",
-                "expires": (datetime.now() - timedelta(days=1)).isoformat(),
-            },
-        ],
-    }))
+                "suppressions": [
+                    {
+                        "rule_id": "B201",
+                        "reason": "Active",
+                        "expires": (datetime.now() + timedelta(days=30)).isoformat(),
+                    },
+                    {
+                        "rule_id": "B301",
+                        "reason": "Expired",
+                        "expires": (datetime.now() - timedelta(days=1)).isoformat(),
+                    },
+                ],
+            }
+        )
+    )
 
     suppressions = _load_suppressions(str(allowlist))
     assert len(suppressions) == 1
@@ -349,6 +371,7 @@ def test_load_suppressions_drops_expired(tmp_path):
 
 
 # ── Decide ─────────────────────────────────────────────────────────────
+
 
 def test_decide_allows_within_budget(findings_list):
     """Test that decisions pass when within budget limits."""
@@ -392,6 +415,7 @@ def test_decide_unlimited_budget():
 
 # ── Load Results (fail-closed) ─────────────────────────────────────────
 
+
 def test_load_results_parses_known_formats(scan_results_dir):
     findings = load_results(scan_results_dir)
     assert len(findings) > 0
@@ -426,17 +450,32 @@ def test_load_results_raises_on_missing_all_output(tmp_path):
 
 # ── Full Pipeline ──────────────────────────────────────────────────────
 
+
 def test_run_policy_full_pipeline(scan_results_dir, tmp_path):
     """Integration test: run the full policy pipeline end-to-end."""
     policy_file = tmp_path / "security-policy.yaml"
-    policy_file.write_text(yaml.dump({
-        "budgets": {"critical": 0, "high": 0, "medium": 10, "low": 20, "note": -1},
-    }))
+    policy_file.write_text(
+        yaml.dump(
+            {
+                "budgets": {
+                    "critical": 0,
+                    "high": 0,
+                    "medium": 10,
+                    "low": 20,
+                    "note": -1,
+                },
+            }
+        )
+    )
 
     allowlist_file = tmp_path / "accepted-risks.yaml"
-    allowlist_file.write_text(yaml.dump({
-        "suppressions": [],
-    }))
+    allowlist_file.write_text(
+        yaml.dump(
+            {
+                "suppressions": [],
+            }
+        )
+    )
 
     sarif_out = tmp_path / "policy-results.sarif"
 
@@ -455,28 +494,42 @@ def test_run_policy_full_pipeline(scan_results_dir, tmp_path):
 def test_run_policy_with_expired_suppressions(scan_results_dir, tmp_path):
     """Integration test: expired suppressions should not suppress."""
     policy_file = tmp_path / "security-policy.yaml"
-    policy_file.write_text(yaml.dump({
-        "budgets": {"critical": 0, "high": 0, "medium": 10, "low": 20, "note": -1},
-    }))
+    policy_file.write_text(
+        yaml.dump(
+            {
+                "budgets": {
+                    "critical": 0,
+                    "high": 0,
+                    "medium": 10,
+                    "low": 20,
+                    "note": -1,
+                },
+            }
+        )
+    )
 
     # Create allowlist with both active and expired suppressions
     allowlist_file = tmp_path / "accepted-risks.yaml"
-    allowlist_file.write_text(yaml.dump({
-        "suppressions": [
+    allowlist_file.write_text(
+        yaml.dump(
             {
-                "rule_id": "B201",
-                "source": "bandit",
-                "reason": "Active suppression",
-                "expires": (datetime.now() + timedelta(days=30)).isoformat(),
-            },
-            {
-                "rule_id": "py/sql-injection",
-                "source": "codeql",
-                "reason": "Expired — should not suppress",
-                "expires": (datetime.now() - timedelta(days=30)).isoformat(),
-            },
-        ],
-    }))
+                "suppressions": [
+                    {
+                        "rule_id": "B201",
+                        "source": "bandit",
+                        "reason": "Active suppression",
+                        "expires": (datetime.now() + timedelta(days=30)).isoformat(),
+                    },
+                    {
+                        "rule_id": "py/sql-injection",
+                        "source": "codeql",
+                        "reason": "Expired — should not suppress",
+                        "expires": (datetime.now() - timedelta(days=30)).isoformat(),
+                    },
+                ],
+            }
+        )
+    )
 
     decision = run_policy(
         results_dir=scan_results_dir,
@@ -491,7 +544,9 @@ def test_run_policy_with_expired_suppressions(scan_results_dir, tmp_path):
     codeql_waived = [f for f in decision.waived_findings if f.source == "codeql"]
     bandit_waived = [f for f in decision.waived_findings if f.source == "bandit"]
 
-    assert len(codeql_waived) == 0, "Expired suppression should not suppress codeql findings"
+    assert len(codeql_waived) == 0, (
+        "Expired suppression should not suppress codeql findings"
+    )
     assert len(bandit_waived) > 0, "Active suppression should suppress bandit findings"
 
     # Verify codeql finding is present somewhere in the decision
@@ -502,13 +557,24 @@ def test_run_policy_with_expired_suppressions(scan_results_dir, tmp_path):
 
 # ── SARIF Output ───────────────────────────────────────────────────────
 
+
 def test_sarif_output_format(scan_results_dir, tmp_path):
     """Test that SARIF output is valid and has expected structure."""
     # Force a blocking decision with zero high budget
     policy_file = tmp_path / "security-policy.yaml"
-    policy_file.write_text(yaml.dump({
-        "budgets": {"critical": 0, "high": 0, "medium": 0, "low": 0, "note": -1},
-    }))
+    policy_file.write_text(
+        yaml.dump(
+            {
+                "budgets": {
+                    "critical": 0,
+                    "high": 0,
+                    "medium": 0,
+                    "low": 0,
+                    "note": -1,
+                },
+            }
+        )
+    )
 
     allowlist_file = tmp_path / "accepted-risks.yaml"
     allowlist_file.write_text(yaml.dump({"suppressions": []}))
