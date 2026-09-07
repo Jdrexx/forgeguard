@@ -315,6 +315,19 @@ jobs:
             find grype-artifacts -name '*.json' -exec cp {} scan-results/grype.json \;
           fi
 
+      # The zap adapter expects zap-report.json in scan-results/; the DAST job
+      # uploads it as artifact zap-report, never matched by *-results.
+      - name: Download ZAP report
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+        with:
+          name: zap-report
+          path: zap-artifacts/
+
+      - name: Stage ZAP results for policy gate
+        run: |
+          mkdir -p scan-results
+          find zap-artifacts -name '*.json' -exec cp {} scan-results/zap-report.json \;
+
       # The CodeQL adapter (fail-closed) expects codeql-results.sarif at the
       # top of scan-results/. The CodeQL job uploads its SARIF as artifact
       # codeql-sarif-<lang> (never matched by *-results above) - download it
