@@ -156,7 +156,10 @@ jobs:
         uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e # v6
         id: grype-scan
         with:
-          image: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          # Scan the image the build actually produced. The build tags it via
+          # docker/metadata-action (ghcr.io/<repo>:main) and --loads it locally;
+          # the :<sha> tag is never pushed, so grype would pull a phantom image.
+          image: ${{ steps.meta.outputs.tags }}
           severity-cutoff: high
           output-format: json
           fail-build: false # policy gate handles the decision
@@ -171,14 +174,14 @@ jobs:
       - name: Generate SBOM (SPDX + CycloneDX)
         uses: anchore/sbom-action@df80a981bc6edbc4e220a492d3cbe9f5547a6e75 # v0.17.9
         with:
-          image: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          image: ${{ steps.meta.outputs.tags }}
           format: spdx-json
           output-file: sbom-spdx.json
 
       - name: Generate CycloneDX SBOM
         uses: anchore/sbom-action@df80a981bc6edbc4e220a492d3cbe9f5547a6e75
         with:
-          image: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          image: ${{ steps.meta.outputs.tags }}
           format: cyclonedx-json
           output-file: sbom-cyclonedx.json
 
