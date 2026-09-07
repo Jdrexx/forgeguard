@@ -190,12 +190,14 @@ jobs:
 
       - name: Sign container image (keyless)
         run: |
-          cosign sign --yes ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
+          # ghcr references must be all-lowercase; ${{ github.repository }} is
+          # case-preserving and cosign rejects the mixed-case form.
+          cosign sign --yes ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}@${{ steps.build.outputs.digest }}
 
       - name: Attach SBOM as attestation
         run: |
           cosign attest --yes --predicate sbom-spdx.json --type spdx \
-            ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}@${{ steps.build.outputs.digest }}
 
       - name: Upload SBOMs
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1

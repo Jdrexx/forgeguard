@@ -93,7 +93,7 @@ jobs:
             --annotation "version=${ANNOTATION_VERSION}" \
             --annotation "ref=${ANNOTATION_REF}" \
             --annotation "commit=${ANNOTATION_COMMIT}" \
-            "ghcr.io/${{ github.repository }}@${IMAGE_DIGEST}"
+            "ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}@${IMAGE_DIGEST}"
 
       - name: Attach SBOM as attestation
         env:
@@ -101,18 +101,18 @@ jobs:
         run: |
           cosign attest --yes \
             --predicate sbom-spdx.json --type spdx \
-            "ghcr.io/${{ github.repository }}@${IMAGE_DIGEST}"
+            "ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}@${IMAGE_DIGEST}"
 
       - name: Attach CycloneDX SBOM as attestation
         run: |
           cosign attest --yes \
             --predicate sbom-cyclonedx.json --type cyclonedx \
-            ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}@${{ steps.build.outputs.digest }}
 
       - name: Generate provenance attestation
         uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
-          subject-name: ghcr.io/${{ github.repository }}
+          subject-name: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
