@@ -308,9 +308,12 @@ jobs:
       - name: Stage Grype results for policy gate
         run: |
           mkdir -p scan-results
-          # The upload preserved the scan-action's output path, so the JSON may
-          # sit under a subdirectory of grype-artifacts/ - find it regardless.
-          find grype-artifacts -name '*.json' -exec cp {} scan-results/grype.json \;
+          # scan-action v6 writes its results to a file literally named
+          # 'output' (no extension) - stage it as grype.json for the adapter.
+          find grype-artifacts -type f -name output -exec cp {} scan-results/grype.json \; || true
+          if [ ! -f scan-results/grype.json ]; then
+            find grype-artifacts -name '*.json' -exec cp {} scan-results/grype.json \;
+          fi
 
       # The CodeQL adapter (fail-closed) expects codeql-results.sarif at the
       # top of scan-results/. The CodeQL job uploads its SARIF as artifact
