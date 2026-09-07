@@ -20,6 +20,7 @@ def deserialize(data: str = Body(..., description="Base64-encoded pickle data"))
     # BAD: unpickling user-supplied data — arbitrary code execution
     try:
         decoded = base64.b64decode(data)
+        # nosemgrep -- intentional CWE-502 vulnerable demo endpoint; fixed counterpart lives in app/fixed/pickle_rce.py and is served at /api
         obj = pickle.loads(decoded)
         return {"result": str(obj)}
     except Exception as e:

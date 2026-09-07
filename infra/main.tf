@@ -63,7 +63,7 @@ resource "aws_subnet" "public" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.${count.index + 10}.0/24"
   availability_zone = data.aws_availability_zones.available.names[count.index]
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = false  # ECS tasks run in private subnets; ALB/NAT use dedicated addressing
 
   tags = {
     Name    = "forgeguard-public-${count.index}"
@@ -233,6 +233,23 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.forgeguard.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-Res-2021-06"
+  certificate_arn   = var.certificate_arn
+
+  default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.forgeguard.arn
   }
@@ -309,6 +326,11 @@ variable "container_tag" {
   description = "Container image tag"
   type        = string
   default     = "latest"
+}
+
+variable "certificate_arn" {
+  description = "ACM certificate ARN for the HTTPS listener"
+  type        = string
 }
 
 # ── Outputs ────────────────────────────────────────────────────────────
