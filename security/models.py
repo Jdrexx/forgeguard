@@ -63,6 +63,16 @@ class Finding:
 
     def to_sarif(self) -> dict:
         """Render this finding as a SARIF result object."""
+        location: dict = {
+            "artifactLocation": {"uri": self.file or self.source or "unknown"}
+        }
+        # GitHub's SARIF validator rejects startLine < 1; findings without a
+        # source line (e.g. grype OS-package matches) get no region at all.
+        if self.line and self.line > 0:
+            location["region"] = {
+                "startLine": self.line,
+                "startColumn": max(self.column, 1),
+            }
         return {
             "ruleId": self.rule_id,
             "ruleIndex": 0,
@@ -70,17 +80,7 @@ class Finding:
             if self.severity in (Severity.CRITICAL, Severity.HIGH)
             else "warning",
             "message": {"text": self.description or f"{self.source}: {self.rule_id}"},
-            "locations": [
-                {
-                    "physicalLocation": {
-                        "artifactLocation": {"uri": self.file},
-                        "region": {
-                            "startLine": self.line,
-                            "startColumn": max(self.column, 1),
-                        },
-                    }
-                }
-            ],
+            "locations": [{"physicalLocation": location}],
             "properties": {
                 "severity": self.severity.value,
                 "source": self.source,
