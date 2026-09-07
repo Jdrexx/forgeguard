@@ -100,6 +100,13 @@ jobs:
           pip-audit --format json -o pip-audit-output.json || true
         continue-on-error: true
 
+      - name: Run Gitleaks secret scan
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_8.30.1_linux_x64.tar.gz \
+            | tar xz gitleaks
+          ./gitleaks detect --source . --report-path gitleaks-output.json --report-format json --no-banner || true
+        continue-on-error: true
+
       - name: Upload scanner results
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
@@ -107,6 +114,7 @@ jobs:
           path: |
             bandit-output.json
             pip-audit-output.json
+            gitleaks-output.json
           retention-days: 7
 
   # ── 3. Build, Scan, SBOM ─────────────────────────────────────────────
