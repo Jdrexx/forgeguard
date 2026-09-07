@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 from ..models import Finding
 
@@ -184,7 +183,6 @@ class CodeQLAdapter(BaseAdapter):
         data = json.loads(content)
         findings = []
         for run in data.get("runs", []):
-            tool_name = (run.get("tool", {}).get("driver", {})).get("name", "codeql")
             for result in run.get("results", []):
                 loc = (result.get("locations") or [{}])[0].get("physicalLocation", {})
                 region = loc.get("region", {})
@@ -291,11 +289,9 @@ class ZAPAdapter(BaseAdapter):
         for site in sites:
             alerts = site.get("alerts", [])
             for alert in alerts:
-                risk = alert.get("riskdesc", "").lower()
                 instances = alert.get("instances", [{}])
                 for inst in instances:
                     uri = inst.get("uri", "")
-                    method = inst.get("method", "")
                     f = Finding(
                         source="zap",
                         rule_id=alert.get("id", "0"),

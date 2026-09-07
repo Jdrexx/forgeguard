@@ -1,19 +1,21 @@
 # ForgeGuard — Multi-stage Dockerfile
 #
 # Build stage: install dependencies and compile
-# Runtime stage: distroless Python with non-root user
+# Runtime stage: Python alpine with non-root user
 #
 # All base images pinned to digest for immutability and supply-chain security.
+# Base: python:3.14-alpine (musl) — reduces the grype OS-package surface from
+# ~277 matches (10 critical / 63 high on slim-bookworm) to ~9 (0 critical /
+# 0 high after apk upgrade). apk upgrade pulls the latest alpine point
+# releases so image-embedded CVEs (e.g. libuuid) are cleared at build time.
 
 # ── Stage 1: Build ─────────────────────────────────────────────────────
-FROM python:3.12-slim-bookworm@sha256:782412e85d0f0984994c290652577d4018aff08145c85b262bb63dc0c7522254 AS builder
+FROM python:3.14-alpine@sha256:c6ead215bfd31f1e433d968853b7a769989117115b728874824e6c0a27cb96fc AS builder
 
 WORKDIR /build
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+# Install build dependencies (musl-dev for any sdist builds)
+RUN apk add --no-cache gcc musl-dev
 
 # Copy dependency manifest and install
 COPY requirements.txt .
@@ -26,11 +28,14 @@ COPY app/ app/
 COPY policy/ policy/
 
 # ── Stage 2: Runtime ───────────────────────────────────────────────────
-FROM python:3.12-slim-bookworm@sha256:782412e85d0f0984994c290652577d4018aff08145c85b262bb63dc0c7522254 AS runtime
+FROM python:3.14-alpine@sha256:c6ead215bfd31f1e433d968853b7a769989117115b728874824e6c0a27cb96fc AS runtime
+
+# Pull latest alpine point releases (clears image-snapshot CVEs like libuuid)
+RUN apk upgrade --no-cache
 
 # Create non-root user
-RUN groupadd --gid 10001 forgeguard && \
-    useradd --uid 10001 --gid forgeguard --shell /sbin/nologin --create-home forgeguard
+RUN addgroup -g 10001 forgeguard && \
+    adduser -D -u 10001 -G forgeguard -s /sbin/nologin -h /home/forgeguard forgeguard
 
 # Copy installed packages from builder
 COPY --from=builder /root/.local /home/forgeguard/.local

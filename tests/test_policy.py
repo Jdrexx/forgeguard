@@ -12,8 +12,6 @@ Tests cover the full evaluation pipeline:
 from __future__ import annotations
 
 import json
-import os
-import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -22,7 +20,6 @@ import yaml
 
 from security.models import Finding, PolicyDecision, Severity, Suppression
 from security.policy import (
-    PolicyConfig,
     _load_suppressions,
     deduplicate,
     decide,
@@ -557,11 +554,6 @@ def test_run_policy_with_expired_suppressions(scan_results_dir, tmp_path):
     )
     assert len(bandit_waived) > 0, "Active suppression should suppress bandit findings"
 
-    # Verify codeql finding is present somewhere in the decision
-    codeql_in_active = any(f.source == "codeql" for f in decision.blocking_findings)
-    # Or it might be within budget (not blocking)
-    # Either way, it shouldn't be waived
-
 
 # ── SARIF Output ───────────────────────────────────────────────────────
 
@@ -589,7 +581,7 @@ def test_sarif_output_format(scan_results_dir, tmp_path):
 
     sarif_path = tmp_path / "output.sarif"
 
-    decision = run_policy(
+    run_policy(
         results_dir=scan_results_dir,
         policy_path=str(policy_file),
         allowlist_path=str(allowlist_file),

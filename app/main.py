@@ -11,12 +11,29 @@ from __future__ import annotations
 import os
 
 from fastapi import FastAPI
+from starlette.middleware.base import BaseHTTPMiddleware
+
+
+class _NoCacheHeaders(BaseHTTPMiddleware):
+    """Send no-store Cache-Control on every response.
+
+    ZAP's "Storable and Cacheable Content" alert fires when responses lack
+    cache directives; demo endpoints return operational data that must not
+    be cached by intermediaries.
+    """
+
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("Cache-Control", "no-store, max-age=0")
+        return response
+
 
 app = FastAPI(
     title="ForgeGuard Demo App",
     version="0.1.0",
     description="Test fixture for the ForgeGuard DevSecOps pipeline",
 )
+app.add_middleware(_NoCacheHeaders)
 
 DEMO_MODE = os.environ.get("DEMO_MODE", "0") == "1"
 

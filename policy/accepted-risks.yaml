@@ -10,11 +10,38 @@
 #
 # Past-date entries (expired) are included here to demonstrate that
 # the policy engine correctly ignores them.
+#
+# NOTE ON THE SELF-SCAN: this repository is the ForgeGuard product and
+# its pipeline scans its OWN image and source. Three classes of findings
+# are therefore suppressed with a documented reason — teaching fixtures,
+# remediated mirror pairs, and upstream CVEs with no fix available:
+#   1. app/vulnerable/* — deliberately-vulnerable DEMO_MODE-only fixtures
+#      (never shipped; DEMO_MODE defaults to 0).
+#   2. app/fixed/* residual scanner flags — the remediated mirror pair is
+#      safe by construction (real containment checks, JSON not pickle);
+#      CodeQL does not model is_relative_to() containment as a sanitizer.
+#   3. grype OS-layer CVEs with no fix in any current upstream image
+#      (python 3.14.7, busybox 1.37) — re-review on expiry; the image is
+#      pinned to digest and apk-upgraded at build time.
 
 suppressions:
   # ── Active suppressions ─────────────────────────────────────────────
-  - rule_id: "B201"
-    reason: "SQL injection false positive in test fixture — sqli.py is deliberately vulnerable for demo"
+  # Demo fixtures (app/vulnerable/* — DEMO_MODE-only teaching content)
+  - rule_id: "B108"
+    file: "app/vulnerable/traversal.py"
+    reason: "Deliberately vulnerable test fixture — quarantined under DEMO_MODE"
+    source: bandit
+    expires: "2027-12-31"
+
+  - rule_id: "B608"
+    file: "app/vulnerable/sqli.py"
+    reason: "Deliberately vulnerable test fixture — quarantined under DEMO_MODE"
+    source: bandit
+    expires: "2027-12-31"
+
+  - rule_id: "B301"
+    file: "app/vulnerable/pickle_rce.py"
+    reason: "Deliberately vulnerable test fixture — quarantined under DEMO_MODE"
     source: bandit
     expires: "2027-12-31"
 
@@ -24,11 +51,81 @@ suppressions:
     source: bandit
     expires: "2027-12-31"
 
-  - rule_id: "CWE-22"
+  - rule_id: "py/path-injection"
     file: "app/vulnerable/traversal.py"
     reason: "Deliberately vulnerable test fixture — quarantined under DEMO_MODE"
+    source: codeql
+    expires: "2027-12-31"
+
+  - rule_id: "py/reflective-xss"
+    file: "app/vulnerable/xss.py"
+    reason: "Deliberately vulnerable test fixture — quarantined under DEMO_MODE"
+    source: codeql
+    expires: "2027-12-31"
+
+  - rule_id: "py/sql-injection"
+    file: "app/vulnerable/sqli.py"
+    reason: "Deliberately vulnerable test fixture — quarantined under DEMO_MODE"
+    source: codeql
+    expires: "2027-12-31"
+
+  - rule_id: "py/unsafe-deserialization"
+    file: "app/vulnerable/pickle_rce.py"
+    reason: "Deliberately vulnerable test fixture — quarantined under DEMO_MODE"
+    source: codeql
+    expires: "2027-12-31"
+
+  - rule_id: "py/stack-trace-exposure"
+    file: "app/vulnerable/pickle_rce.py"
+    reason: "Deliberately vulnerable test fixture — quarantined under DEMO_MODE"
+    source: codeql
+    expires: "2027-12-31"
+
+  # Remediated mirror pair (app/fixed/*) — safe by construction
+  - rule_id: "py/path-injection"
+    file: "app/fixed/traversal.py"
+    reason: "Remediated mirror: realpath + is_relative_to containment is applied before open; CodeQL does not model is_relative_to as a sanitizer"
+    source: codeql
+    expires: "2027-12-31"
+
+  - rule_id: "B108"
+    file: "app/fixed/traversal.py"
+    reason: "Remediated mirror: shared demo data dir under /tmp is intentional for the vulnerable/fixed pair; read is containment-checked"
     source: bandit
     expires: "2027-12-31"
+
+  # Grype OS-layer CVEs with NO fix in any current upstream image (0-day /
+  # unfixed as of 2026-09-07). Image is pinned by digest + apk-upgraded at
+  # build; re-review these when upstream ships fixes.
+  - rule_id: "CVE-2026-17084"
+    reason: "python 3.14.7 — no fix available in any current release"
+    source: grype
+    expires: "2026-12-07"
+
+  - rule_id: "CVE-2026-19672"
+    reason: "python 3.14.7 — no fix available in any current release"
+    source: grype
+    expires: "2026-12-07"
+
+  - rule_id: "CVE-2026-15806"
+    reason: "python 3.14.7 — no fix available in any current release"
+    source: grype
+    expires: "2026-12-07"
+
+  - rule_id: "CVE-2026-4360"
+    reason: "python 3.14.7 — no fix available in any current release"
+    source: grype
+    expires: "2026-12-07"
+
+  - rule_id: "CVE-2025-15367"
+    reason: "python 3.14.7 — fix only in 3.15.0a6 (alpha); re-review at 3.15 stable"
+    source: grype
+    expires: "2026-12-07"
+
+  - rule_id: "CVE-2025-60876"
+    reason: "busybox 1.37.0-r31 — no fix available in current alpine release"
+    source: grype
+    expires: "2026-12-07"
 
   # ── Expired suppressions (past date — should NOT suppress anymore) ───
   - rule_id: "B301"

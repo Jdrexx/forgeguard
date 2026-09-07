@@ -23,7 +23,6 @@ import yaml
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 from .adapters import ALL_ADAPTERS
 from .models import Finding, PolicyDecision, Severity, Suppression
