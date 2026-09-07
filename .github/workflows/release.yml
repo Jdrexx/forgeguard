@@ -78,6 +78,11 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.1
 
+      - name: Resolve lowercase image reference
+        id: img
+        run: |
+          echo "ref=ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]' >> "$GITHUB_OUTPUT"
+
       - name: Sign container image (keyless)
         # Context values (${{ github.* }}, ${{ steps.* }}) are passed through
         # env vars, never spliced into the script — a branch/tag name crafted
@@ -88,38 +93,46 @@ jobs:
           ANNOTATION_REF: ${{ github.ref }}
           ANNOTATION_COMMIT: ${{ github.sha }}
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE_REF: ${{ steps.img.outputs.ref }}
         run: |
           cosign sign --yes \
             --annotation "version=${ANNOTATION_VERSION}" \
             --annotation "ref=${ANNOTATION_REF}" \
             --annotation "commit=${ANNOTATION_COMMIT}" \
-            "ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}@${IMAGE_DIGEST}"
+            "${IMAGE_REF}@${IMAGE_DIGEST}"
 
       - name: Attach SBOM as attestation
         env:
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE_REF: ${{ steps.img.outputs.ref }}
         run: |
           cosign attest --yes \
             --predicate sbom-spdx.json --type spdx \
-            "ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}@${IMAGE_DIGEST}"
+            "${IMAGE_REF}@${IMAGE_DIGEST}"
 
       - name: Attach CycloneDX SBOM as attestation
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE_REF: ${{ steps.img.outputs.ref }}
         run: |
           cosign attest --yes \
             --predicate sbom-cyclonedx.json --type cyclonedx \
-            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}@${{ steps.build.outputs.digest }}
+            "${IMAGE_REF}@${IMAGE_DIGEST}"
 
       - name: Generate provenance attestation
         uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
-          subject-name: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}
+          subject-name: ${{ steps.img.outputs.ref }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
       - name: Verify attestation
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE_REF: ${{ steps.img.outputs.ref }}
         run: |
           cosign verify-attestation --type spdx \
-            ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
+            "${IMAGE_REF}@${IMAGE_DIGEST}"
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
