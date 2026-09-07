@@ -263,6 +263,7 @@ def _map_grype_severity(s: str) -> str:
         "Medium": "medium",
         "Low": "low",
         "Negligible": "note",
+        "Unknown": "note",
     }
     return m.get(s, s.lower())
 

@@ -91,10 +91,17 @@ def load_results(
 
 
 def normalize(findings: list[Finding]) -> list[Finding]:
-    """Normalize severity names, strip whitespace, ensure enums."""
+    """Normalize severity names, strip whitespace, ensure enums.
+
+    Scanner output is untrusted: any severity label outside the enum
+    (e.g. grype's "Unknown") degrades to NOTE instead of crashing the gate.
+    """
     for f in findings:
         if isinstance(f.severity, str):
-            f.severity = Severity(f.severity.lower().strip())
+            try:
+                f.severity = Severity(f.severity.lower().strip())
+            except ValueError:
+                f.severity = Severity.NOTE
         if f.file:
             f.file = f.file.strip()
     return findings

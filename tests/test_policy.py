@@ -223,6 +223,14 @@ def test_normalize_strips_whitespace():
     assert result[1].severity == Severity.MEDIUM
 
 
+def test_normalize_unknown_severity_degrades_to_note():
+    # grype can emit severity "Unknown"; the gate must not crash on it.
+    findings = [Finding(severity="unknown", file="app/z.py")]
+    result = normalize(findings)
+    assert result[0].severity == Severity.NOTE
+    assert result[0].file == "app/z.py"
+
+
 # ── Deduplicate ────────────────────────────────────────────────────────
 
 
