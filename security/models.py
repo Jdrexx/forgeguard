@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -63,9 +64,15 @@ class Finding:
 
     def to_sarif(self) -> dict:
         """Render this finding as a SARIF result object."""
-        location: dict = {
-            "artifactLocation": {"uri": self.file or self.source or "unknown"}
-        }
+        # GitHub's SARIF processor requires artifact URIs to be valid,
+        # file-relative paths: package-name findings (grype: 'zlib1g@1:1.2.13')
+        # contain colons and remote URLs (pip-audit advisories) use http://,
+        # both of which are rejected. Fall back to a synthetic safe path.
+        uri = self.file or ""
+        if not uri or "://" in uri or ":" in uri:
+            safe_id = re.sub(r"[^A-Za-z0-9._-]", "_", self.rule_id or "finding")
+            uri = f"{self.source}/{safe_id}.txt"
+        location: dict = {"artifactLocation": {"uri": uri}}
         # GitHub's SARIF validator rejects startLine < 1; findings without a
         # source line (e.g. grype OS-package matches) get no region at all.
         if self.line and self.line > 0:
