@@ -150,7 +150,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          provenance: true
+          provenance: false
 
       - name: Scan image with Grype
         uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e # v6
@@ -209,6 +209,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      issues: write # ZAP action files an issue when the scan fails thresholds
 
     steps:
       - name: Checkout repository
@@ -216,10 +217,13 @@ jobs:
 
       - name: Start ephemeral deployment
         run: |
-          docker compose -f docker-compose.yml up -d app
+          # The app image is not loaded in this job (build-scan-sbom is a
+          # separate runner), so build it locally before composing up.
+          docker compose -f docker-compose.yml build app
+          docker compose -f docker-compose.yml up -d redis app
           # Wait for the app to be ready
           for _ in $(seq 1 30); do
-            curl -sf http://localhost:8000/readyz && break
+            curl -sf http://localhost:8000/livez && break
             sleep 2
           done
 
