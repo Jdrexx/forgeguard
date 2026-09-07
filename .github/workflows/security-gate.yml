@@ -152,7 +152,7 @@ jobs:
           provenance: true
 
       - name: Scan image with Grype
-        uses: anchore/scan-action@24fd7c9060f3c96848dd1929fac8d69ea09e5a20 # v5.4.0
+        uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e # v6
         id: grype-scan
         with:
           image: ghcr.io/${{ github.repository }}:${{ github.sha }}
@@ -168,14 +168,14 @@ jobs:
           retention-days: 7
 
       - name: Generate SBOM (SPDX + CycloneDX)
-        uses: anchore/sbom-action@f5a39a8fb9fb24e5c0e4ff0c5d3853e4b21ee162 # v0.17.9
+        uses: anchore/sbom-action@df80a981bc6edbc4e220a492d3cbe9f5547a6e75 # v0.17.9
         with:
           image: ghcr.io/${{ github.repository }}:${{ github.sha }}
           format: spdx-json
           output-file: sbom-spdx.json
 
       - name: Generate CycloneDX SBOM
-        uses: anchore/sbom-action@f5a39a8fb9fb24e5c0e4ff0c5d3853e4b21ee162
+        uses: anchore/sbom-action@df80a981bc6edbc4e220a492d3cbe9f5547a6e75
         with:
           image: ghcr.io/${{ github.repository }}:${{ github.sha }}
           format: cyclonedx-json
@@ -223,7 +223,7 @@ jobs:
           done
 
       - name: ZAP Baseline Scan
-        uses: zaproxy/action-baseline@a7800ef6e39a07c586ed1d4153df4283f1e2a3c5 # v0.14.0
+        uses: zaproxy/action-baseline@7c4deb10e6261301961c86d65d54a516394f9aed # v0.14.0
         with:
           target: http://localhost:8000
           rules_file_name: .zap/rules.tsv
@@ -266,14 +266,14 @@ jobs:
           pip install -r requirements.txt
 
       - name: Download all scanner results
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392b47570bd0e2d0cd # v4.1.9
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           pattern: "*-results"
           merge-multiple: true
           path: scan-results/
 
       - name: Download SBOMs for enrichment
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392b47570bd0e2d0cd
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
         with:
           name: sboms
           path: scan-results/sboms/

@@ -62,14 +62,14 @@ jobs:
           provenance: true # attest build provenance
 
       - name: Generate SPDX SBOM via Syft
-        uses: anchore/sbom-action@f5a39a8fb9fb24e5c0e4ff0c5d3853e4b21ee162 # v0.17.9
+        uses: anchore/sbom-action@df80a981bc6edbc4e220a492d3cbe9f5547a6e75 # v0.17.9
         with:
           image: ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}
           format: spdx-json
           output-file: sbom-spdx.json
 
       - name: Generate CycloneDX SBOM via Syft
-        uses: anchore/sbom-action@f5a39a8fb9fb24e5c0e4ff0c5d3853e4b21ee162
+        uses: anchore/sbom-action@df80a981bc6edbc4e220a492d3cbe9f5547a6e75
         with:
           image: ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}
           format: cyclonedx-json
