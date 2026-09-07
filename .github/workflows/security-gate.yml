@@ -295,6 +295,22 @@ jobs:
           name: sboms
           path: scan-results/sboms/
 
+      # The CodeQL adapter (fail-closed) expects codeql-results.sarif at the
+      # top of scan-results/. The CodeQL job uploads its SARIF as artifact
+      # codeql-sarif-<lang> (never matched by *-results above) - download it
+      # and stage it under the name the adapter looks for.
+      - name: Download CodeQL SARIF
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+        with:
+          pattern: codeql-sarif-*
+          path: codeql-artifacts/
+          merge-multiple: true
+
+      - name: Stage CodeQL results for policy gate
+        run: |
+          mkdir -p scan-results
+          cp codeql-artifacts/*.sarif scan-results/codeql-results.sarif
+
       - name: Run ForgeGuard policy gate
         id: policy
         run: |
